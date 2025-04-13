@@ -1,20 +1,18 @@
-import express from 'express';
-import cors from 'cors';
-import mongoose from 'mongoose';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const express = require('express');
+ const cors = require('cors');
+ const mongoose = require('mongoose');
+ const jwt = require('jsonwebtoken');
+const path = require('path')
+const dotenv = require('dotenv')
 
-dotenv.config();
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
-const app = express();
-const PORT = process.env.PORT || 5000;
+dotenv.config()
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const PORT = process.env.PORT || 5000
+const app = express()
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -30,7 +28,14 @@ db.once('open', () => {
   console.log('Connected to MongoDB');
 });
 
-// === MODELS ===
+// Hardcoded user for authentication
+const hardcodedUser = {
+  email: 'intern@dacoid.com',
+  password: 'Test123',
+  id: 'user123',
+};
+
+// Link Schema
 const linkSchema = new mongoose.Schema({
   longUrl: String,
   shortUrl: String,
@@ -40,29 +45,25 @@ const linkSchema = new mongoose.Schema({
   clicks: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
 });
+
 const Link = mongoose.model('Link', linkSchema);
 
+// Analytics Schema
 const analyticsSchema = new mongoose.Schema({
   shortUrl: String,
   device: String,
   ip: String,
   timestamp: { type: Date, default: Date.now },
 });
+
 const Analytics = mongoose.model('Analytics', analyticsSchema);
 
-// === AUTH ===
-const hardcodedUser = {
-  email: 'intern@dacoid.com',
-  password: 'Test123',
-  id: 'user123',
-};
-
-// === ROUTES ===
+// Routes
 app.get('/', (req, res) => {
   res.send('Micro-SaaS Backend is running');
 });
 
-// Login
+// Authentication Route
 app.post('/api/login', (req, res) => {
   const { email, password } = req.body;
 
@@ -74,121 +75,167 @@ app.post('/api/login', (req, res) => {
   res.status(401).json({ message: 'Invalid credentials' });
 });
 
-// Create short link
+// Route to create a short link
 app.post('/api/shorten', async (req, res) => {
   const { longUrl, alias, expirationDate, userId } = req.body;
+
+  // Generate a random short URL if alias is not provided
   const shortUrl = alias || Math.random().toString(36).substring(2, 8);
 
   try {
-    const newLink = new Link({ longUrl, shortUrl, alias, expirationDate, userId });
+    const newLink = new Link({
+      longUrl,
+      shortUrl,
+      alias,
+      expirationDate,
+      userId,
+    });
+
     await newLink.save();
-    res.json({ shortUrl: `${req.protocol}://${req.get('host')}/r/${shortUrl}` });
+    res.json({ shortUrl: `http://localhost:${PORT}/${shortUrl}` });
   } catch (error) {
     res.status(500).json({ message: 'Error creating short link', error });
   }
 });
 
-// Redirection route (renamed to avoid path-to-regexp issues)
-app.get('/r/:shortUrl', async (req, res) => {
+// Route to handle redirection and log analytics
+app.get('/:shortUrl', async (req, res) => {
   const { shortUrl } = req.params;
 
   try {
     const link = await Link.findOne({ shortUrl });
-    if (!link) return res.status(404).json({ message: 'Short URL not found' });
 
+    if (!link) {
+      return res.status(404).json({ message: 'Short URL not found' });
+    }
+
+    // Increment click count asynchronously
     link.clicks += 1;
     await link.save();
 
-    const analyticsEntry = new Analytics({
+    // Log analytics data asynchronously
+    const analyticsData = {
       shortUrl,
       device: req.headers['user-agent'],
       ip: req.ip,
       timestamp: new Date(),
-    });
-    analyticsEntry.save().catch(err => console.error('Error saving analytics:', err));
+    };
+    const analyticsEntry = new Analytics(analyticsData);
+    analyticsEntry.save().catch((error) => console.error('Error logging analytics:', error));
 
     res.redirect(link.longUrl);
   } catch (error) {
-    res.status(500).json({ message: 'Redirection error', error });
+    res.status(500).json({ message: 'Error handling redirection', error });
   }
 });
 
-// Fetch all analytics
+// Route to fetch analytics data
+// Route to fetch analytics data with device breakdown
 app.get('/api/analytics', async (req, res) => {
   try {
     const links = await Link.find({}, 'longUrl shortUrl clicks createdAt expirationDate');
 
     const deviceStats = await Analytics.aggregate([
-      { $group: { _id: { shortUrl: "$shortUrl", device: "$device" }, count: { $sum: 1 } } },
-      { $group: { _id: "$_id.shortUrl", devices: { $push: { device: "$_id.device", count: "$count" } } } }
+      {
+        $group: {
+          _id: { shortUrl: "$shortUrl", device: "$device" },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: "$_id.shortUrl",
+          devices: {
+            $push: {
+              device: "$_id.device",
+              count: "$count"
+            }
+          }
+        }
+      }
     ]);
 
-    const deviceMap = {};
+    const deviceStatsMap = {};
     deviceStats.forEach(item => {
-      deviceMap[item._id] = item.devices;
+      deviceStatsMap[item._id] = item.devices;
     });
 
     const analytics = links.map(link => ({
       ...link.toObject(),
-      devices: deviceMap[link.shortUrl] || []
+      devices: deviceStatsMap[link.shortUrl] || []
     }));
 
     res.json(analytics);
   } catch (error) {
-    res.status(500).json({ message: 'Analytics fetch error', error });
+    res.status(500).json({ message: 'Error fetching analytics data', error });
   }
 });
 
-// Search
+// Route to search short URL (new route added)
 app.get('/api/search', async (req, res) => {
-  const q = req.query.q || '';
+  const searchTerm = req.query.q || ''; // Get the search term from the query string
+
   try {
-    const filtered = await Link.find({ shortUrl: { $regex: q, $options: 'i' } });
-    res.json(filtered);
+    const filteredLinks = await Link.find({
+      shortUrl: { $regex: searchTerm, $options: 'i' }, // Case-insensitive search for shortUrl
+    });
+
+    res.json(filteredLinks); // Return filtered links
   } catch (error) {
-    res.status(500).json({ message: 'Search error', error });
+    res.status(500).json({ message: 'Error searching short URL', error });
   }
 });
 
-// Click count update
+// Add a new route to handle click counting
 app.post('/api/click/:shortUrl', async (req, res) => {
   const { shortUrl } = req.params;
+
   try {
     const link = await Link.findOne({ shortUrl });
-    if (!link) return res.status(404).json({ message: 'Short URL not found' });
 
+    if (!link) {
+      return res.status(404).json({ message: 'Short URL not found' });
+    }
+
+    // Increment click count
     link.clicks += 1;
     await link.save();
 
-    res.json({ message: 'Click updated' });
+    res.status(200).json({ message: 'Click count updated successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Click count error', error });
+    console.error('Error updating click count:', error);
+    res.status(500).json({ message: 'Error updating click count', error });
   }
 });
 
-// Device stats per URL
 app.get('/api/analytics/:shortUrl/devices', async (req, res) => {
   const { shortUrl } = req.params;
   try {
     const result = await Analytics.aggregate([
       { $match: { shortUrl } },
-      { $group: { _id: "$device", count: { $sum: 1 } } },
-      { $project: { _id: 0, device: "$_id", count: 1 } }
+      {
+        $group: {
+          _id: "$device",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          device: "$_id",
+          count: 1
+        }
+      }
     ]);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: 'Device analytics error', error: err });
+    res.status(500).json({ message: 'Error fetching device stats', error: err });
   }
 });
 
-// === Serve Frontend (React) ===
-app.use(express.static(path.join(__dirname, '../micro-saas-app/dist')));
 
-app.get('*', (req, res) => {
-  res.sendFile(path.resolve(__dirname, '../micro-saas-app/dist/index.html'));
-});
 
-// === Start Server ===
+// Start Server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
