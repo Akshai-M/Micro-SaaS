@@ -16,7 +16,7 @@ const AnalyticsDashboard = () => {
     const fetchAnalytics = async () => {
       setLoading(true);
       try {
-        const response = await fetch('http://localhost:5000/api/analytics');
+        const response = await fetch('https://micro-saas-jpd3.onrender.com/api/analytics');
         const data = await response.json();
         dispatch(setAnalyticsData(data));
       } catch (error) {
@@ -31,8 +31,8 @@ const AnalyticsDashboard = () => {
 
   const handleLinkClick = async (shortUrl) => {
     try {
-      await fetch(`http://localhost:5000/api/click/${shortUrl}`, { method: 'POST' });
-      const response = await fetch('http://localhost:5000/api/analytics');
+      await fetch(`https://micro-saas-jpd3.onrender.com/api/click/${shortUrl}`, { method: 'POST' });
+      const response = await fetch('https://micro-saas-jpd3.onrender.com/api/analytics');
       const data = await response.json();
       dispatch(setAnalyticsData(data));
     } catch (error) {

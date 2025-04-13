@@ -20,7 +20,7 @@ const LinkForm = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch('http://localhost:5000/api/shorten', {
+      const response = await fetch('https://micro-saas-jpd3.onrender.com/api/shorten', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ longUrl, alias, expirationDate, userId: 'user123' }),
