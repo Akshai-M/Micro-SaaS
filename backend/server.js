@@ -31,7 +31,6 @@ db.once('open', () => {
 });
 
 // === MODELS ===
-// Link Schema
 const linkSchema = new mongoose.Schema({
   longUrl: String,
   shortUrl: String,
@@ -43,7 +42,6 @@ const linkSchema = new mongoose.Schema({
 });
 const Link = mongoose.model('Link', linkSchema);
 
-// Analytics Schema
 const analyticsSchema = new mongoose.Schema({
   shortUrl: String,
   device: String,
@@ -84,14 +82,14 @@ app.post('/api/shorten', async (req, res) => {
   try {
     const newLink = new Link({ longUrl, shortUrl, alias, expirationDate, userId });
     await newLink.save();
-    res.json({ shortUrl: `${req.protocol}://${req.get('host')}/${shortUrl}` });
+    res.json({ shortUrl: `${req.protocol}://${req.get('host')}/r/${shortUrl}` });
   } catch (error) {
     res.status(500).json({ message: 'Error creating short link', error });
   }
 });
 
-// Redirection + analytics
-app.get('/:shortUrl', async (req, res) => {
+// Redirection route (renamed to avoid path-to-regexp issues)
+app.get('/r/:shortUrl', async (req, res) => {
   const { shortUrl } = req.params;
 
   try {
@@ -183,14 +181,12 @@ app.get('/api/analytics/:shortUrl/devices', async (req, res) => {
   }
 });
 
-
 // === Serve Frontend (React) ===
 app.use(express.static(path.join(__dirname, '../micro-saas-app/dist')));
 
 app.get('*', (req, res) => {
   res.sendFile(path.resolve(__dirname, '../micro-saas-app/dist/index.html'));
 });
-
 
 // === Start Server ===
 app.listen(PORT, () => {
