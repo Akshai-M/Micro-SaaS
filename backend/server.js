@@ -1,10 +1,10 @@
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
-const jwt = require('jsonwebtoken');
-const dotenv = require('dotenv');
-const path = require('path');
-const fileURLToPath = require('url').fileURLToPath;
+import express from 'express';
+import cors from 'cors';
+import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config();
 
