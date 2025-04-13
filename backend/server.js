@@ -181,11 +181,12 @@ app.get('/api/analytics/:shortUrl/devices', async (req, res) => {
 
 
 // === Serve Frontend (React) ===
-app.use(express.static(path.join(__dirname, "../micro-saas-app/dist")));
+app.use(express.static(path.join(__dirname, './micro-saas-app')));
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../micro-saas-app/dist/index.html"));
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, './micro-saas-app/index.html'));
 });
+
 
 // === Start Server ===
 app.listen(PORT, () => {
