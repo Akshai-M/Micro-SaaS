@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "dev": "nodemon server.js"
-  },
+  "install-client": "npm install --prefix ../micro-saas-app",
+  "build-client": "npm run build --prefix ../micro-saas-app",
+  "start": "nodemon server.js",
+  "heroku-postbuild": "npm install --prefix ../micro-saas-app && npm run build --prefix ../micro-saas-app"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
