@@ -1,22 +1,20 @@
 {
-    "name": "micro-saas-app",
+    "name": "micro-saas",
     "version": "1.0.0",
     "scripts": {
-      "dev": "vite", 
-      "build": "vite build",
-      "preview": "vite preview"
+      "install-client": "npm install --prefix micro-saas-app",
+      "build-client": "npm run build --prefix micro-saas-app",
+      "start": "npm run server && npm run client",
+      "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix micro-saas-app\"",
+      "server": "nodemon backend/server.js",
+      "client": "npm start --prefix micro-saas-app",
+      "heroku-postbuild": "npm install --prefix micro-saas-app && npm run build --prefix micro-saas-app"
     },
     "dependencies": {
-      "vite": "^6.2.0",
-      "react": "^19.0.0",
-      "react-dom": "^19.0.0",
-      "react-router-dom": "^7.5.0",
-      "axios": "^1.8.4"
+      "concurrently": "^7.2.1"
     },
     "devDependencies": {
-      "tailwindcss": "^3.4.17",
-      "autoprefixer": "^10.4.21",
-      "eslint": "^9.21.0"
+      "nodemon": "^3.1.9"
     }
   }
   
