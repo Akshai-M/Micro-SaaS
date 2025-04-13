@@ -1,26 +1,19 @@
 {
-  "name": "micro-saas",
+  "name": "backend",
   "version": "1.0.0",
   "main": "server.js",
-  "description": "Micro SaaS URL Shortener with Analytics",
-  "author": "",
-  "license": "ISC",
   "scripts": {
-    "install-client": "npm install --prefix ../micro-saas-app",
-    "build-client": "npm run build --prefix ../micro-saas-app",
-    "start": "node server.js",
-    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix micro-saas-app\"",
-    "heroku-postbuild": "npm install --prefix ../micro-saas-app && npm run build --prefix ../micro-saas-app"
+    "dev": "nodemon server.js",
+    "start": "node server.js"
   },
   "dependencies": {
+    "express": "^5.1.0",
+    "mongoose": "^8.13.2",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.13.2"
+    "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9",
-    "concurrently": "^7.0.0"
+    "nodemon": "^3.1.9"
   }
 }
